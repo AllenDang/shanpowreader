@@ -11,3 +11,20 @@ type AjaxResult struct {
   ErrorMsg string
   Data     interface{}
 }
+
+type BookSource struct {
+  Source     Host   // 来源网站
+  ChapterUrl string // 最新章节链接
+  Chapter    string // 最新章节名称 第一百零一章 以牙还牙
+  UpdateTime string
+}
+
+type SearchCrawlContext struct {
+  BookTitle  string
+  BookAuthor string
+}
+
+type BookSourcesCrawler interface {
+  Search(*SearchCrawlContext) (string, error)              // 搜索书籍来源
+  Crawl(string, *SearchCrawlContext) ([]BookSource, error) // 抓取书籍最新章节链接
+}

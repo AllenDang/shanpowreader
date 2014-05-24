@@ -2,6 +2,7 @@ package controllers
 
 import (
   "fmt"
+  "github.com/AllenDang/shanpowreader/app/crawler"
   "github.com/AllenDang/shanpowreader/app/models"
   "github.com/jgraham909/revmgo"
   "github.com/revel/revel"
@@ -33,18 +34,28 @@ func ajaxWrapper(c *revel.Controller, session *mgo.Session, logicFunc func(dal *
     return &r
   }
 
-  dal := models.NewDal(session)
+  //dal := models.NewDal(session)
 
-  logicFunc(dal, &r)
+  logicFunc(nil, &r)
 
   return &r
 }
 
-func (c *App) Index() revel.Result {
+// se 搜索引擎
+// title 书籍名称
+// author 书籍作者
+// id 书籍 Id
+func (c *App) GetBookSources(se, title, author, id string) revel.Result {
 
   logicFunc := func(dal *models.Dal, r *models.AjaxResult) {
-    r.Result = false
-    r.ErrorMsg = "It works"
+    sources, err := crawler.BookSourcesCrawl("easou", title, author)
+    if err != nil {
+      r.Result = false
+      r.ErrorMsg = err.Error()
+      return
+    }
+
+    r.Data = sources
   }
 
   r := ajaxWrapper(c.Controller, c.MongoSession, logicFunc)

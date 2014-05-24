@@ -1,14 +1,14 @@
 package controllers
 
 import (
-  "github.com/jgraham909/revmgo"
+  //"github.com/jgraham909/revmgo"
   "github.com/revel/revel"
 )
 
 func init() {
   //runtime.GOMAXPROCS(runtime.NumCPU())
 
-  revmgo.ControllerInit()
+  //revmgo.ControllerInit()
 
   revel.ERROR_CLASS = "error"
 
@@ -28,6 +28,6 @@ func init() {
   }
 
   revel.OnAppStart(func() {
-    revmgo.AppInit()
+    //revmgo.AppInit()
   })
 }
