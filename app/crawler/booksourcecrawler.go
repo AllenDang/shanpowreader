@@ -271,8 +271,19 @@ func (s *EASOUSearch) Crawl(sourceUrl string, sc *models.SearchCrawlContext) ([]
       return
     }
 
-    _, err := url.Parse(chapterUrl)
+    u, err := url.Parse(chapterUrl)
     if err != nil {
+      return
+    }
+
+    values, err := url.ParseQuery(u.RawQuery)
+    if err != nil {
+      return
+    }
+
+    if cu, ok := values["cu"]; ok {
+      chapterUrl = cu[0]
+    } else {
       return
     }
 
