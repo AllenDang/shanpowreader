@@ -181,7 +181,7 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
 // 章节 url 名称
 // <a[^'"]+['"]([^'"]+)[^>]+>裁决_[^<]*(第[^>]+章[^>]+)</a>
 func exactChapterAndUrl(s, bookTitle string) (string, string, error) {
-  pattern := `<a[^'"]+['"]([^'"]+)[^>]+>%s_[^<]*(第[^>]+章[^>]+)</a>`
+  pattern := `<a[^'"]+['"]([^'"]+)[^>]+>%s_([^<]+)</a>`
   pattern = fmt.Sprintf(pattern, bookTitle)
 
   rx := regexp.MustCompile(pattern)
