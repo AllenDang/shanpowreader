@@ -5,6 +5,7 @@ import (
   iconv "github.com/djimenez/iconv-go"
   "io/ioutil"
   "net/http"
+  "time"
 )
 
 // httpUrl 网址
@@ -38,4 +39,18 @@ func GetHtmlFromUrl(httpUrl, encoding string) (html, host, actualUrl string, err
   actualUrl = resp.Request.URL.String()
 
   return
+}
+
+// 01-02 15:04 -> 2006-01-02 15:04
+func ExtendTimeLayoutWithYear(timeStr string) (string, error) {
+  t, err := time.Parse("01-02 15:04", timeStr)
+  if err != nil {
+    return "", err
+  }
+
+  t = t.AddDate(time.Now().Year(), 0, 0)
+
+  dateTime := t.Format("2006-01-02 15:04")
+
+  return dateTime, nil
 }

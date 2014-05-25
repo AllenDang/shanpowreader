@@ -265,11 +265,16 @@ func (s *EASOUSearch) Crawl(sourceUrl string, sc *models.SearchCrawlContext) ([]
       return
     }
 
+    updateTime, err := util.ExtendTimeLayoutWithYear(gs.Find("p>span").Eq(0).Text())
+    if err != nil {
+      return
+    }
+
     bookSources = append(bookSources, models.BookSource{
       Host:       u.Host,
       ChapterUrl: chapterUrl,
       Chapter:    chapter,
-      UpdateTime: gs.Find("p>span").Eq(0).Text(),
+      UpdateTime: updateTime,
     })
   }
 
