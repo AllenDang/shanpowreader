@@ -2,8 +2,11 @@ package controllers
 
 import (
   //"github.com/jgraham909/revmgo"
+  "github.com/AllenDang/shanpowreader/app/crawler"
   "github.com/revel/revel"
 )
+
+var crawlerManager *crawler.CrawlerManager
 
 func init() {
   //runtime.GOMAXPROCS(runtime.NumCPU())
@@ -29,5 +32,8 @@ func init() {
 
   revel.OnAppStart(func() {
     //revmgo.AppInit()
+
+    crawlerManager = crawler.NewCrawlerManager()
+    crawlerManager.MonitorConfigChange()
   })
 }

@@ -4,9 +4,11 @@ import (
   "fmt"
   "github.com/AllenDang/shanpowreader/app/crawler"
   "github.com/AllenDang/shanpowreader/app/models"
+  "github.com/AllenDang/shanpowreader/app/util"
   "github.com/jgraham909/revmgo"
   "github.com/revel/revel"
   "labix.org/v2/mgo"
+  "sort"
 )
 
 type App struct {
@@ -47,6 +49,9 @@ func ajaxWrapper(c *revel.Controller, session *mgo.Session, logicFunc func(dal *
 // id 书籍 Id
 func (c *App) GetBookSources(se, title, author, id string) revel.Result {
 
+  c.Validation.Required(title)
+  c.Validation.Required(author)
+
   logicFunc := func(dal *models.Dal, r *models.AjaxResult) {
     sources, err := crawler.BookSourcesCrawl("easou", title, author)
     if err != nil {
@@ -55,7 +60,53 @@ func (c *App) GetBookSources(se, title, author, id string) revel.Result {
       return
     }
 
+    // 处理时间
+    for k, s := range sources {
+      sources[k].UpdateTime = util.GetDurationSubNow(s.UpdateTime)
+    }
+
     r.Data = sources
+  }
+
+  r := ajaxWrapper(c.Controller, c.MongoSession, logicFunc)
+
+  return c.RenderJson(*r)
+}
+
+func (c *App) GetBookContents(url string) revel.Result {
+  c.Validation.Required(url)
+
+  logicFunc := func(dal *models.Dal, r *models.AjaxResult) {
+    chapters, err := crawlerManager.BookContentsCrawl(url)
+    if err != nil {
+      r.Result = false
+      r.ErrorMsg = err.Error()
+      return
+    }
+
+    // 反序
+    sort.Sort(sort.Reverse(models.Chapters(chapters)))
+
+    r.Data = chapters
+  }
+
+  r := ajaxWrapper(c.Controller, c.MongoSession, logicFunc)
+
+  return c.RenderJson(*r)
+}
+
+func (c *App) GetBookChapter(url string) revel.Result {
+  c.Validation.Required(url)
+
+  logicFunc := func(dal *models.Dal, r *models.AjaxResult) {
+    content, err := crawlerManager.ChapterContentCrawl(url)
+    if err != nil {
+      r.Result = false
+      r.ErrorMsg = err.Error()
+      return
+    }
+
+    r.Data = content
   }
 
   r := ajaxWrapper(c.Controller, c.MongoSession, logicFunc)

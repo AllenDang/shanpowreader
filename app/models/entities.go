@@ -16,6 +16,20 @@ type Chapter struct {
   Url   string // 章节链接
 }
 
+type Chapters []Chapter
+
+func (c Chapters) Len() int {
+  return len(c)
+}
+
+func (c Chapters) Less(i, j int) bool {
+  return c[i].Index < c[j].Index
+}
+
+func (c Chapters) Swap(i, j int) {
+  c[i], c[j] = c[j], c[i]
+}
+
 // 书籍目录
 // 单独 Collection 存储
 // 通过 BookId 聚合书籍在各个 Host 的最新更新章节

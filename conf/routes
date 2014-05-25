@@ -5,6 +5,8 @@
 module:testrunner
 
 GET     /sources                                App.GetBookSources
+GET     /contents                               App.GetBookContents
+GET     /chapter                                App.GetBookChapter
 
 # Ignore favicon requests
 GET     /favicon.ico                            404
