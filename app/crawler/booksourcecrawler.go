@@ -6,7 +6,6 @@ import (
   "github.com/AllenDang/shanpowreader/app/util"
   "github.com/PuerkitoBio/goquery"
   iconv "github.com/djimenez/iconv-go"
-  "io/ioutil"
   "net/http"
   "net/url"
   "regexp"
@@ -75,18 +74,7 @@ func (s *SoDuSearch) Search(sc *models.SearchCrawlContext) (string, error) {
 
   searchUrl := fmt.Sprintf("http://www.sodu.so/search/index.aspx?key=%s", title)
 
-  response, err := http.Get(searchUrl)
-  if err != nil {
-    return "", err
-  }
-  defer response.Body.Close()
-
-  body, err := ioutil.ReadAll(response.Body)
-  if err != nil {
-    return "", err
-  }
-
-  content, err := iconv.ConvertString(string(body), "gbk", "utf-8")
+  html, _, _, err := util.GetHtmlFromUrl(searchUrl, "gbk")
   if err != nil {
     return "", err
   }
@@ -94,7 +82,7 @@ func (s *SoDuSearch) Search(sc *models.SearchCrawlContext) (string, error) {
   pattern := fmt.Sprintf(`<a href="([^"]+)[^>]+><b>%s`, sc.BookTitle)
   rx := regexp.MustCompile(pattern)
 
-  matches := rx.FindStringSubmatch(content)
+  matches := rx.FindStringSubmatch(html)
   if len(matches) < 2 || strings.TrimSpace(matches[1]) == "" {
     return "", util.ErrRegexCannotMatch
   }
@@ -103,18 +91,7 @@ func (s *SoDuSearch) Search(sc *models.SearchCrawlContext) (string, error) {
 }
 
 func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]models.BookSource, error) {
-  response, err := http.Get(sourcesUrl)
-  if err != nil {
-    return nil, err
-  }
-  defer response.Body.Close()
-
-  body, err := ioutil.ReadAll(response.Body)
-  if err != nil {
-    return nil, err
-  }
-
-  content, err := iconv.ConvertString(string(body), "gbk", "utf-8")
+  html, _, _, err := util.GetHtmlFromUrl(sourcesUrl, "gbk")
   if err != nil {
     return nil, err
   }
@@ -124,7 +101,7 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
 
   rx := regexp.MustCompile(pattern)
 
-  matches := rx.FindAllString(content, -1)
+  matches := rx.FindAllString(html, -1)
 
   var bookSources []models.BookSource
   existNameMap := map[string]int{}
