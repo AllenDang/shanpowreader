@@ -112,30 +112,18 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
       continue
     }
 
-    hostName, err := exactHostName(m)
-    if err != nil {
-      continue
-    }
-
     updateTime, err := exactUpdateTime(m)
     if err != nil {
       continue
     }
 
     bs := models.BookSource{
-      Source:     models.Host{hostName, ""}, // Host url 后边赋值
       ChapterUrl: fmt.Sprintf("http://www.sodu.so%s", chapterUrl),
       Chapter:    chapter,
       UpdateTime: updateTime,
     }
 
     // 将链接替换为目录链接
-    if _, ok := existNameMap[bs.Source.Name]; ok { // 搜索引擎已经按照更新时间排好序 相同网站只取排序靠前的
-      continue
-    } else {
-      existNameMap[bs.Source.Name] = 1
-    }
-
     resp, err := SoDuClient.Get(bs.ChapterUrl)
     if err != nil && resp.StatusCode != 302 {
       continue
@@ -147,7 +135,14 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
     }
 
     bs.ChapterUrl = redirectUrl.String()
-    bs.Source.Url = redirectUrl.Host
+    bs.Host = redirectUrl.Host
+
+    // 去掉来源重复的
+    if _, ok := existNameMap[bs.Host]; ok { // 搜索引擎已经按照更新时间排好序 相同网站只取排序靠前的
+      continue
+    } else {
+      existNameMap[bs.Host] = 1
+    }
 
     bookSources = append(bookSources, bs)
   }
@@ -173,16 +168,16 @@ func exactChapterAndUrl(s, bookTitle string) (string, string, error) {
 
 // 网站
 // <a[^>]+class=["']tl["']>([^<]+)</a>
-func exactHostName(s string) (string, error) {
-  rx := regexp.MustCompile(`<a[^>]+class=["']tl["']>([^<]+)</a>`)
+// func exactHostName(s string) (string, error) {
+//   rx := regexp.MustCompile(`<a[^>]+class=["']tl["']>([^<]+)</a>`)
 
-  matches := rx.FindStringSubmatch(s)
-  if len(matches) < 2 || strings.TrimSpace(matches[1]) == "" {
-    return "", util.ErrRegexCannotMatch
-  }
+//   matches := rx.FindStringSubmatch(s)
+//   if len(matches) < 2 || strings.TrimSpace(matches[1]) == "" {
+//     return "", util.ErrRegexCannotMatch
+//   }
 
-  return matches[1], nil
-}
+//   return matches[1], nil
+// }
 
 // 更新时间
 // \d{4}-\d{1,2}-\d{1,2}\s*\d{1,2}:\d{1,2}:\d{1,2}
@@ -264,8 +259,14 @@ func (s *EASOUSearch) Crawl(sourceUrl string, sc *models.SearchCrawlContext) ([]
       return
     }
 
+    // 得到 host
+    u, err = url.Parse(chapterUrl)
+    if err != nil {
+      return
+    }
+
     bookSources = append(bookSources, models.BookSource{
-      Source:     models.Host{"", gs.Find("p>span").Eq(1).Text()},
+      Host:       u.Host,
       ChapterUrl: chapterUrl,
       Chapter:    chapter,
       UpdateTime: gs.Find("p>span").Eq(0).Text(),

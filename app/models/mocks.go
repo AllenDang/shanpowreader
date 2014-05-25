@@ -13,7 +13,7 @@ type AjaxResult struct {
 }
 
 type BookSource struct {
-  Source     Host   // 来源网站
+  Host       string // 来源网站
   ChapterUrl string // 最新章节链接
   Chapter    string // 最新章节名称 第一百零一章 以牙还牙
   UpdateTime string

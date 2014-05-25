@@ -9,11 +9,6 @@ import (
   "labix.org/v2/mgo/bson"
 )
 
-type Host struct {
-  Name string
-  Url  string
-}
-
 // 书籍章节
 type Chapter struct {
   Index uint   // 索引 1、2、3...
@@ -26,8 +21,8 @@ type Chapter struct {
 // 通过 BookId 聚合书籍在各个 Host 的最新更新章节
 type BookContents struct {
   BookId           bson.ObjectId // 与网站存储书籍Id 一致
-  Source           Host          // 网站
-  Url              string        // 书籍目录链接 后续爬取时使用
+  Host             string        // 网站 url
+  ContentsUrl      string        // 书籍目录链接 后续爬取时使用
   LatestChapter    Chapter       // 最新更新章节
   LatestUpdateTime string        // 最近更新时间
   Chapters         []Chapter
