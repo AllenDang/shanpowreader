@@ -16,7 +16,8 @@ import (
 )
 
 type CrawlParam struct {
-  Method  string // regex、goquery  目前 目录仅支持 regex，章节内容仅支持 goquery
+  Method  string // regex、goquery  目前 目录仅支持 regex，章节内容支持 goquery 及 html2article
+  Options map[string]interface{}
   Pattern string
 }
 
@@ -59,7 +60,15 @@ func (c *Crawler) BookContentsCrawl(contentsUrl string) ([]models.Chapter, error
     return nil, util.ErrCanNotConstructBookContentsUrl
   }
 
-  html, _, _, err := util.GetHtmlFromUrl(contentsUrl, c.config.Encoding)
+  // 目录页 有可能url有后缀
+  var suffix string
+  if m, ok := c.config.Params["ContentsUrl"].Options["suffix"]; ok {
+    if suffix, ok = m.(string); !ok {
+      return nil, util.ErrConfigParasError
+    }
+  }
+
+  html, _, _, err := util.GetHtmlFromUrl(contentsUrl+suffix, c.config.Encoding)
   if err != nil {
     return nil, err
   }
@@ -74,9 +83,21 @@ func (c *Crawler) BookContentsCrawl(contentsUrl string) ([]models.Chapter, error
       continue
     }
 
+    u, err := url.Parse(c[1])
+    if err != nil {
+      continue
+    }
+
+    chapterUrl := contentsUrl
+    if u.IsAbs() {
+      chapterUrl = c[1]
+    } else {
+      chapterUrl += "/" + c[1]
+    }
+
     chapters = append(chapters, models.Chapter{
       Index: index,
-      Url:   contentsUrl + "/" + c[1],
+      Url:   chapterUrl,
       Name:  c[2],
     })
 
@@ -101,6 +122,20 @@ func (c *Crawler) ChapterContentCrawl(chapterUrl string) (string, error) {
   doc := goquery.NewDocumentFromNode(node)
 
   return doc.Find(c.config.Params["Chapter"].Pattern).Html()
+}
+
+func (c *Crawler) ChapterHtml2Article(chapterUrl string) (string, error) {
+  htmlStr, _, _, err := util.GetHtmlFromUrl(chapterUrl, c.config.Encoding)
+  if err != nil {
+    return "", err
+  }
+
+  result := util.Html2Article(htmlStr)
+  if len(result) == 0 {
+    return "", util.ErrHtml2ArticleFailed
+  }
+
+  return result, nil
 }
 
 type CrawlerManager struct {
@@ -165,10 +200,8 @@ func (c *CrawlerManager) MonitorConfigChange() {
 
 //判断域名是否可以抓取
 func (c *CrawlerManager) IsCrawlable(host string) bool {
-  for _, v := range c.crawlerMap {
-    if v.config.ForUrl == host {
-      return true
-    }
+  if _, ok := c.crawlerMap[host]; ok {
+    return true
   }
 
   return false
@@ -222,9 +255,12 @@ func (c *CrawlerManager) ChapterContentCrawl(chapterUrl string) (string, error) 
     return "", util.ErrCanNotFindChapterCfg
   }
 
-  if chapterCfg.Method != "goquery" {
-    return "", util.ErrOnlySupportGoQueryMethodForNow
+  switch chapterCfg.Method {
+  case "goquery":
+    return crawler.ChapterContentCrawl(chapterUrl)
+  case "html2article":
+    return crawler.ChapterHtml2Article(chapterUrl)
   }
 
-  return crawler.ChapterContentCrawl(chapterUrl)
+  return "", util.ErrNotSupportCrawl
 }
