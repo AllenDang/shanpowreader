@@ -13,8 +13,9 @@ import (
 )
 
 var (
-  CKYearDateTimeLayout = "2006-01-02 15:04:05"
-  CKDateTimeLayout     = "01-02 15:04"
+  CKYearDateTimeLayout     = "2006-01-02 15:04:05"
+  CKSoDuYearDateTimeLayout = "2006-1-02 15:04:05"
+  CKDateTimeLayout         = "01-02 15:04"
 )
 
 // httpUrl 网址

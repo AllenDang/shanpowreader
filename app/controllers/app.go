@@ -53,7 +53,7 @@ func (c *App) GetBookSources(se, title, author, id string) revel.Result {
   c.Validation.Required(author)
 
   logicFunc := func(dal *models.Dal, r *models.AjaxResult) {
-    sources, err := crawler.BookSourcesCrawl("easou", title, author)
+    sources, err := crawler.BookSourcesCrawl("easou", title, author, crawlerManager.IsCrawlable)
     if err != nil {
       r.Result = false
       r.ErrorMsg = err.Error()

@@ -20,8 +20,9 @@ type BookSource struct {
 }
 
 type SearchCrawlContext struct {
-  BookTitle  string
-  BookAuthor string
+  BookTitle       string
+  BookAuthor      string
+  IsCrawlableFunc func(string) bool
 }
 
 type BookSourcesCrawler interface {

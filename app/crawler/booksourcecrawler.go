@@ -11,10 +11,11 @@ import (
   "net/url"
   "regexp"
   "strings"
+  "time"
 )
 
 var (
-  BookSourcesLimitCount = 40
+  BookSourcesLimitCount = 15
 )
 
 //
@@ -25,11 +26,13 @@ var (
 // 1 实现 models.BookSourcesCrawler 接口
 // 2 在 BookSourcesCrawl 中调用
 //
-func BookSourcesCrawl(name, bookTitle, bookAuthor string) ([]models.BookSource, error) {
+func BookSourcesCrawl(name, bookTitle, bookAuthor string,
+  isCrawlableFunc func(string) bool) ([]models.BookSource, error) {
   var c models.SearchCrawlContext
 
   c.BookTitle = bookTitle
   c.BookAuthor = bookAuthor
+  c.IsCrawlableFunc = isCrawlableFunc
 
   switch name {
   case "sodu":
@@ -57,7 +60,13 @@ func bookSourcesCrawl(crawler models.BookSourcesCrawler,
     return nil, err
   }
 
-  bookSources = append(bookSources, sources...)
+  if c.IsCrawlableFunc != nil {
+    for _, s := range sources {
+      if c.IsCrawlableFunc(s.Host) {
+        bookSources = append(bookSources, s)
+      }
+    }
+  }
 
   for nextPageUrl != "" && len(bookSources) < BookSourcesLimitCount {
     sources, nextPageUrl, err = crawler.Crawl(nextPageUrl, c)
@@ -69,7 +78,13 @@ func bookSourcesCrawl(crawler models.BookSourcesCrawler,
       break
     }
 
-    bookSources = append(bookSources, sources...)
+    if c.IsCrawlableFunc != nil {
+      for _, s := range sources {
+        if c.IsCrawlableFunc(s.Host) {
+          bookSources = append(bookSources, s)
+        }
+      }
+    }
   }
 
   return bookSources, nil
@@ -144,6 +159,11 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
       continue
     }
 
+    updateTime, err = s.tranSoDuUpdateTime2Standard(updateTime)
+    if err != nil {
+      continue
+    }
+
     bs := models.BookSource{
       ChapterUrl: fmt.Sprintf("http://www.sodu.so%s", chapterUrl),
       Chapter:    chapter,
@@ -175,6 +195,15 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
   }
 
   return bookSources, "", nil
+}
+
+func (s *SoDuSearch) tranSoDuUpdateTime2Standard(dateTime string) (string, error) {
+  t, err := time.Parse(util.CKSoDuYearDateTimeLayout, dateTime)
+  if err != nil {
+    return "", err
+  }
+
+  return t.Format(util.CKYearDateTimeLayout), nil
 }
 
 // 章节 url 名称
