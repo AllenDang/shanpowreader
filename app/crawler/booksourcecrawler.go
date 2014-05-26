@@ -1,6 +1,7 @@
 package crawler
 
 import (
+  "code.google.com/p/go.net/html"
   "fmt"
   "github.com/AllenDang/shanpowreader/app/models"
   "github.com/AllenDang/shanpowreader/app/util"
@@ -10,6 +11,10 @@ import (
   "net/url"
   "regexp"
   "strings"
+)
+
+var (
+  BookSourcesLimitCount = 40
 )
 
 //
@@ -45,7 +50,29 @@ func bookSourcesCrawl(crawler models.BookSourcesCrawler,
     return nil, err
   }
 
-  return crawler.Crawl(url, c)
+  var bookSources []models.BookSource
+
+  sources, nextPageUrl, err := crawler.Crawl(url, c)
+  if err != nil {
+    return nil, err
+  }
+
+  bookSources = append(bookSources, sources...)
+
+  for nextPageUrl != "" && len(bookSources) < BookSourcesLimitCount {
+    sources, nextPageUrl, err = crawler.Crawl(nextPageUrl, c)
+    if err != nil {
+      return bookSources, err
+    }
+
+    if len(sources) == 0 {
+      break
+    }
+
+    bookSources = append(bookSources, sources...)
+  }
+
+  return bookSources, nil
 }
 
 //
@@ -74,7 +101,7 @@ func (s *SoDuSearch) Search(sc *models.SearchCrawlContext) (string, error) {
 
   searchUrl := fmt.Sprintf("http://www.sodu.so/search/index.aspx?key=%s", title)
 
-  html, _, _, err := util.GetHtmlFromUrl(searchUrl, "gbk")
+  htmlStr, _, _, err := util.GetHtmlFromUrl(searchUrl, "gbk")
   if err != nil {
     return "", err
   }
@@ -82,7 +109,7 @@ func (s *SoDuSearch) Search(sc *models.SearchCrawlContext) (string, error) {
   pattern := fmt.Sprintf(`<a href="([^"]+)[^>]+><b>%s`, sc.BookTitle)
   rx := regexp.MustCompile(pattern)
 
-  matches := rx.FindStringSubmatch(html)
+  matches := rx.FindStringSubmatch(htmlStr)
   if len(matches) < 2 || strings.TrimSpace(matches[1]) == "" {
     return "", util.ErrRegexCannotMatch
   }
@@ -90,10 +117,10 @@ func (s *SoDuSearch) Search(sc *models.SearchCrawlContext) (string, error) {
   return fmt.Sprintf("http://www.sodu.so%s", matches[1]), nil
 }
 
-func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]models.BookSource, error) {
-  html, _, _, err := util.GetHtmlFromUrl(sourcesUrl, "gbk")
+func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]models.BookSource, string, error) {
+  htmlStr, _, _, err := util.GetHtmlFromUrl(sourcesUrl, "gbk")
   if err != nil {
-    return nil, err
+    return nil, "", err
   }
 
   pattern := `<div[^<]*<div[^<]*<a[^>]+>%s_[^>]+[^<]*</div[^<]*<div[^<]*<a[^<]*</a[^<]*</div[^<]*<div[^<]*</div[^<]*</div>`
@@ -101,7 +128,7 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
 
   rx := regexp.MustCompile(pattern)
 
-  matches := rx.FindAllString(html, -1)
+  matches := rx.FindAllString(htmlStr, -1)
 
   var bookSources []models.BookSource
   existNameMap := map[string]int{}
@@ -147,7 +174,7 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
     bookSources = append(bookSources, bs)
   }
 
-  return bookSources, nil
+  return bookSources, "", nil
 }
 
 // 章节 url 名称
@@ -227,11 +254,19 @@ func (s *EASOUSearch) Search(sc *models.SearchCrawlContext) (string, error) {
   return sourceUrl, nil
 }
 
-func (s *EASOUSearch) Crawl(sourceUrl string, sc *models.SearchCrawlContext) ([]models.BookSource, error) {
-  doc, err := goquery.NewDocument(sourceUrl)
+func (s *EASOUSearch) Crawl(sourceUrl string, sc *models.SearchCrawlContext) ([]models.BookSource, string, error) {
+
+  htmlStr, _, _, err := util.GetHtmlFromUrl(sourceUrl, "")
   if err != nil {
-    return nil, err
+    return nil, "", err
   }
+
+  nodes, err := html.Parse(strings.NewReader(htmlStr))
+  if err != nil {
+    return nil, "", err
+  }
+
+  doc := goquery.NewDocumentFromNode(nodes)
 
   var bookSources []models.BookSource
 
@@ -280,5 +315,14 @@ func (s *EASOUSearch) Crawl(sourceUrl string, sc *models.SearchCrawlContext) ([]
 
   doc.Find(".easou_pdb4").Each(foreach)
 
-  return bookSources, nil
+  nextPageRegex := regexp.MustCompile(`<a[^‘“]+['"]([^'"]+)['"][^>]*>下页</a>`)
+  matches := nextPageRegex.FindStringSubmatch(htmlStr)
+  if len(matches) < 2 || strings.TrimSpace(matches[1]) == "" { // 无匹配认为无下页
+    return bookSources, "", nil
+  }
+
+  // 得到的url html编码了
+  nextPageUrl := html.UnescapeString("http://book.easou.com" + matches[1])
+
+  return bookSources, nextPageUrl, nil
 }

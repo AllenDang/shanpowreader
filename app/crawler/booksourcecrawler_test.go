@@ -34,7 +34,7 @@ func TestSoDuBookSourcesCrawl(t *testing.T) {
     t.Fatal(err)
   }
 
-  sources, err := sodu.Crawl(listUrl, &context)
+  sources, _, err := sodu.Crawl(listUrl, &context)
   if err != nil {
     t.Fatal(err)
   }
@@ -67,12 +67,30 @@ func TestEASOUBookSourceCrawl(t *testing.T) {
     t.Fatal(err)
   }
 
-  sources, err := easou.Crawl(listUrl, &context)
+  var bookSources []models.BookSource
+
+  sources, nextPageUrl, err := easou.Crawl(listUrl, &context)
   if err != nil {
     t.Fatal(err)
   }
 
-  for _, s := range sources {
+  bookSources = append(bookSources, sources...)
+
+  for nextPageUrl != "" && len(bookSources) < BookSourcesLimitCount {
+    log.Println(nextPageUrl)
+    sources, nextPageUrl, err = easou.Crawl(nextPageUrl, &context)
+    if err != nil {
+      t.Fatal(err)
+    }
+
+    if len(sources) == 0 {
+      break
+    }
+
+    bookSources = append(bookSources, sources...)
+  }
+
+  for _, s := range bookSources {
     log.Println(s)
   }
 }

@@ -25,6 +25,6 @@ type SearchCrawlContext struct {
 }
 
 type BookSourcesCrawler interface {
-  Search(*SearchCrawlContext) (string, error)              // 搜索书籍来源
-  Crawl(string, *SearchCrawlContext) ([]BookSource, error) // 抓取书籍最新章节链接
+  Search(*SearchCrawlContext) (string, error)                      // 搜索书籍来源
+  Crawl(string, *SearchCrawlContext) ([]BookSource, string, error) // 抓取书籍最新章节链接 并返回下一页Url
 }
