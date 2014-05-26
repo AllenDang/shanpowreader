@@ -60,12 +60,19 @@ func (c *App) GetBookSources(se, title, author, id string) revel.Result {
       return
     }
 
-    // 处理时间
-    for k, s := range sources {
-      sources[k].UpdateTime = util.GetDurationSubNow(s.UpdateTime)
+    var result []models.BookSource
+    for _, s := range sources {
+      if crawlerManager.IsCrawlable(s.Host) {
+        result = append(result, s)
+      }
     }
 
-    r.Data = sources
+    // 处理时间
+    for k, s := range result {
+      result[k].UpdateTime = util.GetDurationSubNow(s.UpdateTime)
+    }
+
+    r.Data = result
   }
 
   r := ajaxWrapper(c.Controller, c.MongoSession, logicFunc)
