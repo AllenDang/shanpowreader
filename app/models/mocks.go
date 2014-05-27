@@ -23,6 +23,7 @@ type SearchCrawlContext struct {
   BookTitle       string
   BookAuthor      string
   IsCrawlableFunc func(string) bool
+  HostExists      map[string]int // 本次抓取中书籍源是否已存在
 }
 
 type BookSourcesCrawler interface {

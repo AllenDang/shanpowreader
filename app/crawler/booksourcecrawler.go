@@ -33,6 +33,7 @@ func BookSourcesCrawl(name, bookTitle, bookAuthor string,
   c.BookTitle = bookTitle
   c.BookAuthor = bookAuthor
   c.IsCrawlableFunc = isCrawlableFunc
+  c.HostExists = map[string]int{}
 
   switch name {
   case "sodu":
@@ -44,6 +45,25 @@ func BookSourcesCrawl(name, bookTitle, bookAuthor string,
   }
 
   return nil, util.ErrSearchEngineNotSurpport
+}
+
+func check2AppendBookSources(sources []models.BookSource, c *models.SearchCrawlContext) (bookSources []models.BookSource) {
+  if c.IsCrawlableFunc != nil {
+    for _, s := range sources {
+      // 去掉来源重复的
+      if _, ok := c.HostExists[s.Host]; ok { // 搜索引擎已经按照更新时间排好序 相同网站只取排序靠前的
+        continue
+      } else {
+        c.HostExists[s.Host] = 1
+      }
+
+      if c.IsCrawlableFunc(s.Host) {
+        bookSources = append(bookSources, s)
+      }
+    }
+  }
+
+  return
 }
 
 func bookSourcesCrawl(crawler models.BookSourcesCrawler,
@@ -60,13 +80,7 @@ func bookSourcesCrawl(crawler models.BookSourcesCrawler,
     return nil, err
   }
 
-  if c.IsCrawlableFunc != nil {
-    for _, s := range sources {
-      if c.IsCrawlableFunc(s.Host) {
-        bookSources = append(bookSources, s)
-      }
-    }
-  }
+  bookSources = append(bookSources, check2AppendBookSources(sources, c)...)
 
   for nextPageUrl != "" && len(bookSources) < BookSourcesLimitCount {
     sources, nextPageUrl, err = crawler.Crawl(nextPageUrl, c)
@@ -78,13 +92,7 @@ func bookSourcesCrawl(crawler models.BookSourcesCrawler,
       break
     }
 
-    if c.IsCrawlableFunc != nil {
-      for _, s := range sources {
-        if c.IsCrawlableFunc(s.Host) {
-          bookSources = append(bookSources, s)
-        }
-      }
-    }
+    bookSources = append(bookSources, check2AppendBookSources(sources, c)...)
   }
 
   return bookSources, nil
@@ -146,7 +154,6 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
   matches := rx.FindAllString(htmlStr, -1)
 
   var bookSources []models.BookSource
-  existNameMap := map[string]int{}
 
   for _, m := range matches {
     chapterUrl, chapter, err := exactChapterAndUrl(m, sc.BookTitle)
@@ -183,13 +190,6 @@ func (s *SoDuSearch) Crawl(sourcesUrl string, sc *models.SearchCrawlContext) ([]
 
     bs.ChapterUrl = redirectUrl.String()
     bs.Host = redirectUrl.Host
-
-    // 去掉来源重复的
-    if _, ok := existNameMap[bs.Host]; ok { // 搜索引擎已经按照更新时间排好序 相同网站只取排序靠前的
-      continue
-    } else {
-      existNameMap[bs.Host] = 1
-    }
 
     bookSources = append(bookSources, bs)
   }
