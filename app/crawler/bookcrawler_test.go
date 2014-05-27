@@ -36,6 +36,7 @@ func TestChapterContentCrawl(t *testing.T) {
   cm.Init("../../conf/bookcrawler.conf")
 
   chapterUrls := []string{
+    "http://www.xiaoshuoan.com/73/73571/7848348.html",
     "http://www.hao662.com/haoshu/1/1113/511564.html",
     "http://www.78xs.com/article/215/11354/3732084.shtml",
     "http://www.173wx.com/xiaoshuo/8/8916/7574300.html",
