@@ -91,7 +91,7 @@ func (c *Crawler) BookContentsCrawl(contentsUrl string) ([]models.Chapter, error
     chapterUrl := contentsUrl
     if u.IsAbs() {
       chapterUrl = c[1]
-    } else {
+    } else { // todo 根据配置或分析 决定是否需要 + /
       chapterUrl += "/" + c[1]
     }
 
@@ -133,6 +133,16 @@ func (c *Crawler) ChapterHtml2Article(chapterUrl string) (string, error) {
   result := util.Html2Article(htmlStr)
   if len(result) == 0 {
     return "", util.ErrHtml2ArticleFailed
+  }
+
+  // 清理多余内容
+  if cleanAfter, ok := c.config.Params["Chapter"].Options["clean"]; ok {
+    if afterStr, ok := cleanAfter.(string); ok {
+      splits := strings.Split(result, afterStr)
+      if splits != nil {
+        result = splits[0]
+      }
+    }
   }
 
   return result, nil
