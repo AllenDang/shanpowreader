@@ -34,10 +34,8 @@ func getContent(body string) (string, string) {
   lines := make([]string, len(orgLines))
 
   // 去除每行空白字符 剔除标签
-  crlfRegex := regexp.MustCompile(`<p>|</p>|<br.*?/?>`)
-
   for k, lineInfo := range orgLines {
-    lineInfo = crlfRegex.ReplaceAllString(lineInfo, "[crlf]")
+    lineInfo = ReplaceNewlineTags(lineInfo, "[crlf]")
     lineInfo = FilterAllTags(lineInfo)
     lineInfo = strings.TrimSpace(lineInfo)
 
@@ -47,6 +45,7 @@ func getContent(body string) (string, string) {
   // 提取正文文本
   var preTextLen int    // 上次统计字符数量
   var startPos int = -1 // 正文起始位置
+  var isExistEnd bool
 
   for i := 0; i < len(lines)-PreDepthLine; i++ {
     depthTextLen := 0
@@ -84,6 +83,7 @@ func getContent(body string) (string, string) {
       }
     } else { // 已找到文章起始
       if depthTextLen <= EndLimitCharCount && preTextLen < EndLimitCharCount {
+        isExistEnd = true
         break
       }
 
@@ -92,6 +92,12 @@ func getContent(body string) (string, string) {
     }
 
     preTextLen = depthTextLen
+  }
+
+  if !isExistEnd { // 不添加此段代码 统计时会直接扔到最后 PreDepthLine 行 有可能导致丢失内容 加了 会导致有时内容冗余
+    for i := len(lines) - PreDepthLine; i < len(lines); i++ {
+      contentLines = append(contentLines, lines[i])
+    }
   }
 
   content := strings.Join(contentLines, "")
@@ -121,6 +127,12 @@ func TranHtmlTagToLower(htmlStr string) string {
 func FilterAllTags(htmlStr string) string {
   tagsRegex := regexp.MustCompile(`<[^>]+>`)
   return tagsRegex.ReplaceAllString(htmlStr, "")
+}
+
+func ReplaceNewlineTags(htmlStr, repl string) string {
+  crlfRegex := regexp.MustCompile(`<p>|</p>|<br.*?/?>`)
+
+  return crlfRegex.ReplaceAllString(htmlStr, repl)
 }
 
 // htmlStr utf-8 编码
