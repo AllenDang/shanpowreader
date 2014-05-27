@@ -121,6 +121,10 @@ func (c *Crawler) ChapterContentCrawl(chapterUrl string) (string, error) {
 
   doc := goquery.NewDocumentFromNode(node)
 
+  if c.config.Params["Chapter"].Pattern == "" {
+    return "", util.ErrConfigParasError
+  }
+
   content, err := doc.Find(c.config.Params["Chapter"].Pattern).Html()
   if err != nil {
     return "", err
