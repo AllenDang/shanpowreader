@@ -130,7 +130,25 @@ func (c *Crawler) ChapterContentCrawl(chapterUrl string) (string, error) {
     return "", err
   }
 
-  return util.FilterAllTags(content), nil
+  // 删除 \r \n \t
+  spaceRegex := regexp.MustCompile(`[\r\n\t]`)
+  content = spaceRegex.ReplaceAllString(content, "")
+
+  // 替换 <br/> 或 <p> </p> 为换行
+  content = util.ReplaceNewlineTags(content, "\r\n")
+
+  // 删除可以匹配的标签
+  tagPairRegex := regexp.MustCompile(`<([^>]+)>[^<]*</[^>]+>`)
+  content = tagPairRegex.ReplaceAllString(content, "")
+
+  // 过滤 所有标签
+  content = util.FilterAllTags(content)
+
+  if len(strings.TrimSpace(content)) == 0 {
+    return "", util.ErrNotFoundNovelContent
+  }
+
+  return content, nil
 }
 
 func (c *Crawler) ChapterHtml2Article(chapterUrl string) (string, error) {
