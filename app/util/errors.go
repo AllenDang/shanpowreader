@@ -18,6 +18,6 @@ var (
   ErrOnlySupportGoQueryMethodForNow = errors.New("目前仅支持 goquery 方法")
   ErrNoValidRegexPattern            = errors.New("正则表达式不可用")
   ErrNotSupportCrawl                = errors.New("该网页不支持抓取")
-  ErrHtml2ArticleFailed             = errors.New("没有找到正文")
+  ErrNotFoundNovelContent           = errors.New("没有找到正文")
   ErrConfigParasError               = errors.New("配置文件参数有误")
 )

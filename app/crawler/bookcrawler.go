@@ -121,7 +121,12 @@ func (c *Crawler) ChapterContentCrawl(chapterUrl string) (string, error) {
 
   doc := goquery.NewDocumentFromNode(node)
 
-  return doc.Find(c.config.Params["Chapter"].Pattern).Html()
+  content, err := doc.Find(c.config.Params["Chapter"].Pattern).Html()
+  if err != nil {
+    return "", err
+  }
+
+  return util.FilterAllTags(content), nil
 }
 
 func (c *Crawler) ChapterHtml2Article(chapterUrl string) (string, error) {
@@ -130,9 +135,11 @@ func (c *Crawler) ChapterHtml2Article(chapterUrl string) (string, error) {
     return "", err
   }
 
+  htmlStr = util.UnCompressHtml(htmlStr)
+  htmlStr = util.TranHtmlTagToLower(htmlStr)
   result := util.Html2Article(htmlStr)
   if len(result) == 0 {
-    return "", util.ErrHtml2ArticleFailed
+    return "", util.ErrNotFoundNovelContent
   }
 
   // 清理多余内容
@@ -146,6 +153,38 @@ func (c *Crawler) ChapterHtml2Article(chapterUrl string) (string, error) {
   }
 
   return result, nil
+}
+
+func (c *Crawler) ChapterQidian(chapterUrl string) (string, error) {
+  doc, err := goquery.NewDocument(chapterUrl)
+  if err != nil {
+    return "", err
+  }
+
+  src, isExist := doc.Find("#content>script").Attr("src")
+  if !isExist {
+    return "", util.ErrNotFoundNovelContent
+  }
+
+  content, _, _, err := util.GetHtmlFromUrl(src, c.config.Encoding)
+  if err != nil {
+    return "", util.ErrNotFoundNovelContent
+  }
+
+  content = html.UnescapeString(content)
+  content = strings.TrimPrefix(content, "document.write('")
+  content = strings.TrimSuffix(content, "');")
+  content = strings.Replace(content, "<p>", "\r\n", -1)
+
+  // 过滤所有html标签
+  tagsFilter := regexp.MustCompile(`<[^>]+>`)
+  content = tagsFilter.ReplaceAllString(content, "")
+
+  if len(content) == 0 {
+    return "", util.ErrNotFoundNovelContent
+  }
+
+  return content, nil
 }
 
 type CrawlerManager struct {
@@ -270,6 +309,8 @@ func (c *CrawlerManager) ChapterContentCrawl(chapterUrl string) (string, error) 
     return crawler.ChapterContentCrawl(chapterUrl)
   case "html2article":
     return crawler.ChapterHtml2Article(chapterUrl)
+  case "qidian":
+    return crawler.ChapterQidian(chapterUrl)
   }
 
   return "", util.ErrNotSupportCrawl

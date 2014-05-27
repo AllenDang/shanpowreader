@@ -11,6 +11,8 @@ func TestHtml2Article(t *testing.T) {
     t.Fatal(err)
   }
 
+  htmlStr = UnCompressHtml(htmlStr)
+  htmlStr = TranHtmlTagToLower(htmlStr)
   contentWithTags := Html2Article(htmlStr)
   if len(contentWithTags) == 0 {
     t.Fatal("没有找到正文")

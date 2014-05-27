@@ -34,12 +34,11 @@ func getContent(body string) (string, string) {
   lines := make([]string, len(orgLines))
 
   // 去除每行空白字符 剔除标签
-  crlfRegex := regexp.MustCompile(`</p>|<br.*?/?>`)
-  tagRegex := regexp.MustCompile(`<[^>]*>`)
+  crlfRegex := regexp.MustCompile(`<p>|</p>|<br.*?/?>`)
 
   for k, lineInfo := range orgLines {
     lineInfo = crlfRegex.ReplaceAllString(lineInfo, "[crlf]")
-    lineInfo = tagRegex.ReplaceAllString(lineInfo, "")
+    lineInfo = FilterAllTags(lineInfo)
     lineInfo = strings.TrimSpace(lineInfo)
 
     lines[k] = lineInfo
@@ -96,7 +95,7 @@ func getContent(body string) (string, string) {
   }
 
   content := strings.Join(contentLines, "")
-
+  content = strings.Replace(content, "\r", "", -1)
   content = strings.Replace(content, "[crlf]", "\r\n", -1)
   content = html.UnescapeString(content)
 
@@ -105,23 +104,31 @@ func getContent(body string) (string, string) {
   return content, contentWithTags
 }
 
-// htmlStr utf-8 编码
-func Html2Article(htmlStr string) string {
+func UnCompressHtml(htmlStr string) string {
   if strings.Count(htmlStr, "\n") < 10 { // 换行符小于10个人为 htmlStr 为压缩过的
     htmlStr = strings.Replace(htmlStr, ">", ">\n", -1)
   }
 
-  // 将所有标签处理为小写
-  toLowerRegex := regexp.MustCompile(`<[^!][^>]+>`)
-  htmlStr = toLowerRegex.ReplaceAllStringFunc(htmlStr, strings.ToLower)
+  return htmlStr
+}
 
-  // 提取 body 内容
-  bodyRegex := regexp.MustCompile(BodyRegex)
-  body := bodyRegex.FindString(htmlStr)
+func TranHtmlTagToLower(htmlStr string) string {
+  // 将所有标签处理为小写
+  toLowerRegex := regexp.MustCompile(`<[^!]*?[^>]+>`)
+  return toLowerRegex.ReplaceAllStringFunc(htmlStr, strings.ToLower)
+}
+
+func FilterAllTags(htmlStr string) string {
+  tagsRegex := regexp.MustCompile(`<[^>]+>`)
+  return tagsRegex.ReplaceAllString(htmlStr, "")
+}
+
+// htmlStr utf-8 编码
+func Content2Article(htmlStr string) string {
 
   // 过滤掉样式、脚本等标签
   filterRegex := regexp.MustCompile(`(?s)<script.*?>.*?</script>`) // 过滤脚本
-  body = filterRegex.ReplaceAllString(body, "")
+  body := filterRegex.ReplaceAllString(htmlStr, "")
 
   filterRegex = regexp.MustCompile(`(?s)<style.*?>.*?</style>`) // 过滤样式
   body = filterRegex.ReplaceAllString(body, "")
@@ -145,4 +152,15 @@ func Html2Article(htmlStr string) string {
   content, _ := getContent(body)
 
   return content
+}
+
+// htmlStr utf-8 编码
+// 仅处理 <body> 与 </body>间内容
+func Html2Article(htmlStr string) string {
+
+  // 提取 body 内容
+  bodyRegex := regexp.MustCompile(BodyRegex)
+  body := bodyRegex.FindString(htmlStr)
+
+  return Content2Article(body)
 }
