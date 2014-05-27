@@ -1,6 +1,7 @@
 package util
 
 import (
+  "html"
   "regexp"
   "strings"
 )
@@ -95,26 +96,28 @@ func getContent(body string) (string, string) {
   }
 
   content := strings.Join(contentLines, "")
+
   content = strings.Replace(content, "[crlf]", "\r\n", -1)
+  content = html.UnescapeString(content)
 
   contentWithTags := strings.Join(contentWithTagsLines, "")
 
   return content, contentWithTags
 }
 
-// html utf-8 编码
-func Html2Article(html string) string {
-  if strings.Count(html, "\n") < 10 { // 换行符小于10个人为 html 为压缩过的
-    html = strings.Replace(html, ">", ">\n", -1)
+// htmlStr utf-8 编码
+func Html2Article(htmlStr string) string {
+  if strings.Count(htmlStr, "\n") < 10 { // 换行符小于10个人为 htmlStr 为压缩过的
+    htmlStr = strings.Replace(htmlStr, ">", ">\n", -1)
   }
 
   // 将所有标签处理为小写
   toLowerRegex := regexp.MustCompile(`<[^!][^>]+>`)
-  html = toLowerRegex.ReplaceAllStringFunc(html, strings.ToLower)
+  htmlStr = toLowerRegex.ReplaceAllStringFunc(htmlStr, strings.ToLower)
 
   // 提取 body 内容
   bodyRegex := regexp.MustCompile(BodyRegex)
-  body := bodyRegex.FindString(html)
+  body := bodyRegex.FindString(htmlStr)
 
   // 过滤掉样式、脚本等标签
   filterRegex := regexp.MustCompile(`(?s)<script.*?>.*?</script>`) // 过滤脚本
@@ -140,9 +143,6 @@ func Html2Article(html string) string {
   body = formatRegex.ReplaceAllStringFunc(body, formatTags)
 
   content, _ := getContent(body)
-
-  // 删除连续的换行
-  content = strings.Replace(content, "\r\n", "<br/>", -1)
 
   return content
 }

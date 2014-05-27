@@ -6,7 +6,7 @@ import (
 )
 
 func TestHtml2Article(t *testing.T) {
-  htmlStr, _, _, err := GetHtmlFromUrl("http://www.piaotian.net/html/4/4940/3257334.html", "gbk") // "http://www.78xs.com/article/13/19226/7565228.shtml", "gbk")
+  htmlStr, _, _, err := GetHtmlFromUrl("http://www.78xs.com/article/13/19226/7565228.shtml", "gbk")
   if err != nil {
     t.Fatal(err)
   }
