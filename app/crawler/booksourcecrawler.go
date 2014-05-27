@@ -61,6 +61,8 @@ func check2AppendBookSources(sources []models.BookSource, c *models.SearchCrawlC
         bookSources = append(bookSources, s)
       }
     }
+  } else {
+    bookSources = sources
   }
 
   return
