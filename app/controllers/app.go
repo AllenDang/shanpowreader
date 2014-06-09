@@ -43,11 +43,9 @@ func ajaxWrapper(c *revel.Controller, session *mgo.Session, logicFunc func(dal *
   return &r
 }
 
-// se 搜索引擎
 // title 书籍名称
 // author 书籍作者
-// id 书籍 Id
-func (c *App) GetBookSources(se, title, author, id string) revel.Result {
+func (c *App) GetBookSources(title, author string) revel.Result {
 
   c.Validation.Required(title)
   c.Validation.Required(author)
@@ -73,7 +71,7 @@ func (c *App) GetBookSources(se, title, author, id string) revel.Result {
   return c.RenderJson(*r)
 }
 
-func (c *App) GetBookContents(url string) revel.Result {
+func (c *App) GetChapterList(url string) revel.Result {
   c.Validation.Required(url)
 
   logicFunc := func(dal *models.Dal, r *models.AjaxResult) {
@@ -95,7 +93,7 @@ func (c *App) GetBookContents(url string) revel.Result {
   return c.RenderJson(*r)
 }
 
-func (c *App) GetBookChapter(url string) revel.Result {
+func (c *App) GetChapterContent(url string) revel.Result {
   c.Validation.Required(url)
 
   logicFunc := func(dal *models.Dal, r *models.AjaxResult) {
